@@ -3,6 +3,10 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 
+extern "C" {
+#include <buffer.h>
+}
+
 AsyncWebServer webserver(80);
 AsyncWebSocket websocket("/ws");
 
