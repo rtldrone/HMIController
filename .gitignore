@@ -1,4 +1,6 @@
 .pio
 CMakeListsPrivate.txt
 
+.idea/
+cmake-build-debug/
 cmake-build-featheresp32/

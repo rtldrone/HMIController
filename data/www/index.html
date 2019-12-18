@@ -1,0 +1,230 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="css/rangeslider.css">
+        <script src="js/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/rws.min.js"></script>
+        <script src="js/rangeslider.min.js"></script>
+        <script src="js/faults.js"></script>
+        <script src="js/ui.js"></script>
+        <script src="js/comms.js"></script>
+
+        <!-- Using a style block to save FS space -->
+        <style>
+            html, body {
+                height: 100%;
+                margin: 0;
+            }
+
+            .debug-fill {
+                background: yellow;
+            }
+        </style>
+
+        <title>RTL Drone HMI</title>
+    </head>
+
+    <body>
+        <div class="d-flex h-100">
+            <div class="mr-auto">
+                <button type="button" class="btn btn-lg btn-danger btn-block h-100" onmousedown="onStopButton()">S<br>T<br>O<br>P</button>
+            </div>
+            <div class="container-fluid mt-3">
+                <!-- Outer container row -->
+                <div class="row">
+                    <!-- Controls and readouts column -->
+                    <div class="col-6">
+                        <!-- Power data readout row -->
+                        <div class="row">
+                            <div class="col-6 pr-2">
+                                <div class="card">
+                                    <div class="card-header">Battery Voltage</div>
+                                    <div class="card-body">
+                                        <h4 id="battery_voltage_readout" class="card-text">-- V</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 pl-2">
+                                <div class="card">
+                                    <div class="card-header">Current Draw</div>
+                                    <div class="card-body">
+                                        <h4 id="current_draw_readout" class="card-text">-- A</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speed data readout row -->
+                        <div class="row mt-3">
+                            <div class="col-6 pr-2">
+                                <div class="card">
+                                    <div class="card-header">Speed</div>
+                                    <div class="card-body">
+                                        <h4 id="speed_readout" class="card-text">-- MPH</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 pl-2">
+                                <div class="card">
+                                    <div class="card-header">Speed Target</div>
+                                    <div class="card-body">
+                                        <h4 id="speed_target_readout" class="card-text">-- MPH</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speed control row -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">Speed Control</div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-9">
+                                                <input id="speed_setpoint" type="range" min="0" max="10" value="0" step="0.1" role="input-range">
+                                            </div>
+                                            <div class="col-3 p-0">
+                                                <h5 id="speed_setpoint_readout" class="align-text-top">-- MPH</h5>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-3">
+                                            <div class="col-6">
+                                                <div class="btn-group" role="group">
+                                                    <button id="forward_button" type="button" class="btn btn-primary" onclick="onDirectionButton(true)">Forward</button>
+                                                    <button id="reverse_button" type="button" class="btn btn-secondary" onclick="onDirectionButton(false)">Reverse</button>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="btn-group float-right" role="group">
+                                                    <button type="button" class="btn btn-success" onmousedown="onJogButton(true)" onmouseup="onJogButton(false)" onmouseleave="onJogButton(false)">Jog (Hold)</button>
+                                                    <button type="button" class="btn btn-warning" onclick="onLockButton()">Lock</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connection and faults row -->
+                        <div class="row mt-3">
+                            <div class="col-6 pr-2">
+                                <div class="card">
+                                    <div class="card-header">Connection Status</div>
+                                    <div class="card-body p-0">
+                                        <div id="connection_state_readout" class="alert alert-danger text-center m-1" role="alert">Not Connected</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 pl-2">
+                                <div class="card h-100">
+                                    <div class="card-header">Faults</div>
+                                    <div class="card-body pt-2 pb-0 pl-1 pr-2">
+                                        <div class="row">
+                                            <div class="col-4 pr-0">
+                                                <h2 id="faults_count_readout" class="text-center w-100">--</h2>
+                                            </div>
+                                            <div class="col-8">
+                                                <button type="button" class="btn btn-primary btn-block" data-toggle="modal" data-target="#faults_modal">Open List</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature logging column -->
+                    <div class="col-6">
+                        <div class="card h-100">
+                            <div class="card-header">Feature Logging</div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <button id="level_crossing_button" type="button" class="btn btn-secondary btn-block" onmousedown="onLevelCrossingButton(true)" onmouseup="onLevelCrossingButton(false)" onmouseleave="onLevelCrossingButton(false)">Level Crossing</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button id="switch_button" type="button" class="btn btn-secondary btn-block" onmousedown="onSwitchButton(true)" onmouseup="onSwitchButton(false)" onmouseleave="onSwitchButton(false)">Switch</button>
+                                    </div>
+                                </div>
+                                <div class="row pt-4">
+                                    <div class="col-6">
+                                        <button id="flange_applicator_button" type="button" class="btn btn-secondary btn-block" onclick="onFlangeApplicatorButton()">Flange Applicator</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button id="tor_applicator_button" type="button" class="btn btn-secondary btn-block" onclick="onTorApplicatorButton()">TOR Applicator</button>
+                                    </div>
+                                </div>
+                                <div class="row pt-4">
+                                    <div class="col-6">
+                                        <button id="mile_post_button" type="button" class="btn btn-secondary btn-block" onclick="onMilePostButton()">Mile Post</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button id="signal_button" type="button" class="btn btn-secondary btn-block" onclick="onSignalButton()">Signal</button>
+                                    </div>
+                                </div>
+                                <div class="row pt-4">
+                                    <div class="col-6">
+                                        <button id="tunnel_button" type="button" class="btn btn-secondary btn-block" onclick="onTunnelButton()">Tunnel (Toggle)</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button id="bridge_button" type="button" class="btn btn-secondary btn-block" onclick="onBridgeButton()">Bridge (Toggle)</button>
+                                    </div>
+                                </div>
+                                <div class="row pt-4">
+                                    <div class="col-12">
+                                        <button id="highlight_button" type="button" class="btn btn-secondary btn-block" onclick="onHighlightButton()">General Highlight (Toggle)</button>
+                                    </div>
+                                </div>
+                                <div class="row pt-5">
+                                    <div class="col-8">
+                                        <label>
+                                            <input type="text" class="form-control" placeholder="Enter filename">
+                                        </label>
+                                    </div>
+                                    <div class="col-4">
+                                        <button id="set_file_button" type="button" class="btn btn-primary btn-block">Set File</button>
+                                    </div>
+                                </div>
+                                <div class="row pt-3">
+                                    <div class="col-6">
+                                        <button id="record_button" type="button" class="btn btn-secondary btn-block">Start Recording</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button id="open_console_button" type="button" class="btn btn-primary btn-block">Open Console</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ml-auto">
+                <button type="button" class="btn btn-lg btn-danger btn-block h-100" onmousedown="onStopButton()">S<br>T<br>O<br>P</button>
+            </div>
+        </div>
+
+        <!-- Faults modal -->
+        <div class="modal fade" id="faults_modal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Faults</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div id="faults_container" class="modal_body px-3 pt-3">
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
