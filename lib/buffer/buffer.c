@@ -187,6 +187,10 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
 }
 
 //RTL Extensions
+uint8_t buffer_get_uint8(uint8_t *buffer, int32_t *index) {
+    return buffer[(*index)++];
+}
+
 void buffer_append_uint8(uint8_t *buffer, uint8_t number, int32_t *index) {
     buffer[(*index)++] = number;
 }
